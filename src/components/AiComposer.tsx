@@ -243,7 +243,7 @@ export function AiComposer({ open, onClose, provider, current, onApply, onOpenSe
                             <span className={c.kind === 'removida' ? 'text-muted line-through' : ''}>{nodeTitle(c.node)}</span>
                             {c.kind === 'alterada' && (
                               <span className="block text-[11.5px] text-muted">
-                                {c.fields.map((f) => `${f.label}: "${f.before || '—'}" → "${f.after || '—'}"`).join(' · ')}
+                                {c.fields.map((f) => `${f.label}: ${f.before ? `"${f.before}"` : 'vazio'} → ${f.after ? `"${f.after}"` : 'vazio'}`).join(' · ')}
                               </span>
                             )}
                           </span>
