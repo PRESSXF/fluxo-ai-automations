@@ -107,15 +107,15 @@ describe('validação do JSON devolvido pela IA', () => {
     expect(errorsOf({ name: 'x', nodes, edges: [] })[0]).toMatch(/no máximo 40/)
   })
 
-  it('o rascunho ganha layout da esquerda para a direita', () => {
+  it('o rascunho ganha layout de cima para baixo', () => {
     const r = parseFlowDraft(valid)
     if (!r.ok) throw new Error('inválido')
     const f = draftToFlow(r.value)
-    const x = Object.fromEntries(f.nodes.map((n) => [n.id, n.position.x]))
-    expect(x.g).toBeLessThan(x.c)
-    expect(x.c).toBeLessThan(x.n)
     const y = Object.fromEntries(f.nodes.map((n) => [n.id, n.position.y]))
-    expect(y.n).toBeLessThan(y.f)
+    expect(y.g).toBeLessThan(y.c)
+    expect(y.c).toBeLessThan(y.n)
+    const x = Object.fromEntries(f.nodes.map((n) => [n.id, n.position.x]))
+    expect(x.n).toBeLessThan(x.f)
   })
 })
 

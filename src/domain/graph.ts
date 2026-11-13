@@ -1,4 +1,5 @@
 import { CATALOG } from './catalog'
+import { NODE_H, NODE_W } from './layout'
 import type { Flow, FlowEdge, FlowNode, NodeType, Port, Position } from './types'
 
 /**
@@ -75,6 +76,30 @@ export function connect(flow: Flow, from: string, port: Port, to: string): Conne
   const edges = flow.edges.filter((e) => !(e.from === from && e.port === port))
   const edge: FlowEdge = { id: `${from}:${port}->${to}`, from, to, port }
   return { ok: true, flow: { ...flow, edges: [...edges, edge] }, edge }
+}
+
+/**
+ * Insere uma etapa logo depois de outra. Se aquela saída já levava a algum lugar,
+ * a etapa nova entra no meio do caminho e as etapas de baixo descem um nível.
+ */
+export function insertAfter(flow: Flow, type: NodeType, fromId: string, port: Port): { flow: Flow; node: FlowNode } | null {
+  const src = flow.nodes.find((n) => n.id === fromId)
+  if (!src || !CATALOG[src.type].ports.includes(port)) return null
+  const level = NODE_H + 56
+  const oldTarget = nextOf(flow, fromId, port)
+  const node = createNode(flow, type, { x: src.position.x + (port === 'nao' ? NODE_W + 52 : 0), y: src.position.y + level })
+  let next = flow
+  if (oldTarget) next = { ...next, nodes: next.nodes.map((n) => (n.position.y > src.position.y ? { ...n, position: { ...n.position, y: n.position.y + level } } : n)) }
+  next = addNode(next, node)
+  if (!CATALOG[type].hasInput) return { flow: next, node }
+  const linked = connect(next, fromId, port, node.id)
+  if (linked.ok) next = linked.flow
+  const outPort = CATALOG[type].ports[0]
+  if (oldTarget && outPort) {
+    const relinked = connect(next, node.id, outPort, oldTarget)
+    if (relinked.ok) next = relinked.flow
+  }
+  return { flow: next, node }
 }
 
 export function disconnect(flow: Flow, from: string, port: Port): Flow {

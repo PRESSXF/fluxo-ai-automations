@@ -26,6 +26,8 @@ export interface Issue {
   hint: string
   nodeIds: string[]
   edgeId?: string
+  /** Campo da configuração com problema, para a interface marcar o campo certo. */
+  field?: string
 }
 
 /**
@@ -91,22 +93,23 @@ function checkFields(n: FlowNode, issues: Issue[]) {
         message: `"${title}" está sem ${f.label.toLowerCase()}.`,
         hint: `Abra a etapa e preencha o campo "${f.label}".`,
         nodeIds: [n.id],
+        field: f.key,
       })
       continue
     }
     if (isBlank(v)) continue
     if (f.kind === 'number' && (!Number.isFinite(Number(v)) || Number(v) < 0)) {
-      issues.push({ code: 'valor_invalido', severity: 'erro', message: `"${title}": ${f.label.toLowerCase()} precisa ser um número.`, hint: 'Use só algarismos, sem unidade.', nodeIds: [n.id] })
+      issues.push({ code: 'valor_invalido', severity: 'erro', message: `"${title}": ${f.label.toLowerCase()} precisa ser um número.`, hint: 'Use só algarismos, sem unidade.', nodeIds: [n.id], field: f.key })
     }
     if (f.kind === 'select' && f.options && !f.options.some(([o]) => o === String(v))) {
-      issues.push({ code: 'valor_invalido', severity: 'erro', message: `"${title}": opção "${v}" não existe em ${f.label.toLowerCase()}.`, hint: 'Escolha uma das opções da lista.', nodeIds: [n.id] })
+      issues.push({ code: 'valor_invalido', severity: 'erro', message: `"${title}": opção "${v}" não existe em ${f.label.toLowerCase()}.`, hint: 'Escolha uma das opções da lista.', nodeIds: [n.id], field: f.key })
     }
     if (f.kind === 'time' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(v))) {
-      issues.push({ code: 'valor_invalido', severity: 'erro', message: `"${title}": horário "${v}" inválido.`, hint: 'Use o formato 24 h, como 09:00.', nodeIds: [n.id] })
+      issues.push({ code: 'valor_invalido', severity: 'erro', message: `"${title}": horário "${v}" inválido.`, hint: 'Use o formato 24 h, como 09:00.', nodeIds: [n.id], field: f.key })
     }
   }
   if (n.type === 'controle.esperar' && Number(n.config.minutos) === 0) {
-    issues.push({ code: 'valor_invalido', severity: 'erro', message: `"${title}" espera 0 minutos.`, hint: 'Defina um tempo maior que zero ou remova a etapa.', nodeIds: [n.id] })
+    issues.push({ code: 'valor_invalido', severity: 'erro', message: `"${title}" espera 0 minutos.`, hint: 'Defina um tempo maior que zero ou remova a etapa.', nodeIds: [n.id], field: 'minutos' })
   }
   if (n.type === 'condicao' && NUMERIC_OPERATORS.has(String(n.config.operador)) && !isBlank(n.config.valor) && !Number.isFinite(Number(String(n.config.valor).replace(',', '.')))) {
     issues.push({
@@ -115,11 +118,12 @@ function checkFields(n: FlowNode, issues: Issue[]) {
       message: `"${title}" compara "${n.config.campo}" com "${n.config.valor}", que não é número.`,
       hint: 'Para maior/menor, use um número, como 200. Para texto, use "contém" ou "igual a".',
       nodeIds: [n.id],
+      field: 'valor',
     })
   }
   if (n.type === 'ia.classificar') {
     const cats = String(n.config.categorias ?? '').split(',').map((s) => s.trim()).filter(Boolean)
-    if (cats.length === 1) issues.push({ code: 'valor_invalido', severity: 'erro', message: `"${title}" tem uma categoria só.`, hint: 'Classificar exige pelo menos duas categorias, separadas por vírgula.', nodeIds: [n.id] })
+    if (cats.length === 1) issues.push({ code: 'valor_invalido', severity: 'erro', message: `"${title}" tem uma categoria só.`, hint: 'Classificar exige pelo menos duas categorias, separadas por vírgula.', nodeIds: [n.id], field: 'categorias' })
   }
 }
 

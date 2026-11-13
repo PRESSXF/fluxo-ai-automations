@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { connect, createNode, addNode, duplicateNode, moveNodes, readingOrder, removeNodes, updateNode } from '../src/domain/graph'
+import { connect, createNode, addNode, duplicateNode, insertAfter, moveNodes, readingOrder, removeNodes, updateNode } from '../src/domain/graph'
 import { initHistory, push, redo, replace, undo } from '../src/domain/history'
 import { diffFlows } from '../src/domain/diff'
-import { autoLayout, NODE_W } from '../src/domain/layout'
+import { autoLayout, NODE_H, NODE_W } from '../src/domain/layout'
 import { PRESETS, TEMPLATES, templateFlow } from '../src/domain/templates'
 import { runFlow } from '../src/domain/engine'
 import { classifyDemo, summarizeDemo } from '../src/ai/demo/provider'
@@ -45,6 +45,23 @@ describe('edição do grafo', () => {
     expect(dup.flow.nodes).toHaveLength(g.nodes.length + 1)
     const ed = updateNode(g, n.id, { config: { titulo: 'Novo' } })
     expect(ed.nodes.find((x) => x.id === n.id)!.config).toMatchObject({ titulo: 'Novo', responsavel: 'Equipe' })
+  })
+
+  it('inserir depois de uma etapa já ligada entra no meio do caminho', () => {
+    const f = pedidoComCondicao()
+    const r = insertAfter(f, 'controle.esperar', 'avisa', 'out')!
+    expect(r.flow.edges.find((e) => e.from === 'avisa')!.to).toBe(r.node.id)
+    expect(r.flow.edges.find((e) => e.from === r.node.id)!.to).toBe('msg')
+    const msgBefore = f.nodes.find((n) => n.id === 'msg')!.position.y
+    expect(r.flow.nodes.find((n) => n.id === 'msg')!.position.y).toBeGreaterThan(msgBefore)
+    expect(validateFlow(r.flow)).toEqual([])
+  })
+
+  it('inserir numa saída livre só liga a etapa nova', () => {
+    const f = removeNodes(pedidoComCondicao(), ['msg'])
+    const r = insertAfter(f, 'controle.fim', 'c', 'nao')!
+    expect(r.flow.edges.find((e) => e.from === 'c' && e.port === 'nao')!.to).toBe(r.node.id)
+    expect(insertAfter(f, 'acao.tarefa', 'avisa', 'sim')).toBeNull()
   })
 
   it('ordem de leitura segue o fluxo, "sim" antes de "não"', () => {
@@ -97,12 +114,20 @@ describe('diferença antes de aplicar', () => {
 })
 
 describe('layout automático', () => {
-  it('não sobrepõe etapas e põe filhos à direita', () => {
-    const f = templateFlow('clinica-confirmacao')
+  it.each(['clinica-confirmacao', 'restaurante-pedido-alto', 'loja-triagem-whatsapp'])('%s: não sobrepõe etapas e põe filhos abaixo', (id) => {
+    const f = templateFlow(id)
     const pos = autoLayout(f.nodes, f.edges)
-    const keys = new Set(Object.values(pos).map((p) => `${p.x},${p.y}`))
-    expect(keys.size).toBe(f.nodes.length)
-    for (const e of f.edges) expect(pos[e.to].x).toBeGreaterThanOrEqual(pos[e.from].x + NODE_W)
+    const ids = Object.keys(pos)
+    for (const a of ids)
+      for (const b of ids) if (a < b) expect(Math.abs(pos[a].x - pos[b].x) >= NODE_W || Math.abs(pos[a].y - pos[b].y) >= NODE_H, `${a} x ${b}`).toBe(true)
+    for (const e of f.edges) expect(pos[e.to].y).toBeGreaterThanOrEqual(pos[e.from].y + NODE_H)
+  })
+
+  it('o caminho "se sim" fica à esquerda do "se não"; o ponto de encontro ganha coluna própria', () => {
+    const f = templateFlow('restaurante-pedido-alto')
+    const pos = autoLayout(f.nodes, f.edges)
+    expect(pos.avisa_gerente.x).toBeLessThan(pos.confirma_cliente.x)
+    expect(pos.tarefa_conferir.x).not.toBe(pos.confirma_cliente.x)
   })
 
   it('não trava com ciclo', () => {
