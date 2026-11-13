@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Bancada de trabalho: papel quente com grade de pontos, tinta quase preta,
+   brasa para o que é IA e para a ação principal. Cada família de etapa tem a sua cor. */
+:root {
+  --paper: 245 240 231;
+  --surface: 255 253 249;
+  --sunk: 236 229 217;
+  --line: 219 209 193;
+  --ink: 33 29 26;
+  --ink2: 58 51 45;
+  --muted: 104 94 84;
+  --ember: 184 68 26;
+  --emberlight: 239 128 74;
+  --trig: 150 98 0;
+  --cond: 104 72 158;
+  --act: 30 96 140;
+  --ai: 184 68 26;
+  --ctrl: 86 98 74;
+  --ok: 35 118 74;
+  --warn: 150 98 0;
+  --bad: 180 40 40;
+  color-scheme: light;
+}
+
+html, body, #root { height: 100%; }
+body {
+  @apply bg-paper text-ink font-sans antialiased;
+}
+::selection { background: rgb(var(--emberlight) / .35); }
+:focus-visible { outline: 2px solid rgb(var(--ember)); outline-offset: 2px; border-radius: 6px; }
+
+.scroll-thin { scrollbar-width: thin; scrollbar-color: rgb(var(--line)) transparent; }
+
+.dot-grid {
+  background-color: rgb(var(--paper));
+  background-image: radial-gradient(rgb(var(--ink) / .13) 1px, transparent 1.2px);
+}
+
+.kbd {
+  @apply inline-flex min-w-[1.4rem] items-center justify-center rounded border border-line bg-surface px-1 font-mono text-[11px] text-ink2;
+  box-shadow: 0 1px 0 rgb(var(--line));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
